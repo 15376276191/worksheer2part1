@@ -1,0 +1,18 @@
+# Object files
+*.o
+*.elf
+
+# ISO image
+*.iso
+
+# Log files
+*.txt
+log*.txt
+
+# Backup files
+*~
+*.bak
+
+# Build artifacts
+/os.iso
+/iso/boot/kernel.elf
