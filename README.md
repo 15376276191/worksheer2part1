@@ -13,9 +13,9 @@
   - `iso/boot/grub/menu.lst` - GRUB configuration
 
 **Screenshots:**
-- `task1.1.png` - GRUB boot menu
-- `task1.2.png` - Kernel loading process
-- `task1.3.png` - Successful boot verification
+![Task 1.1](task1.1.png) - GRUB boot menu  
+![Task 1.2](task1.2.png) - Kernel loading process  
+![Task 1.3](task1.3.png) - Successful boot verification
 
 ### Task 2: Calling C from Assembler
 - **Status:** ✅ Completed  
@@ -30,12 +30,12 @@
   - `factorial(int n)` - Returns factorial of a number
 
 **Screenshots:**
-- `task2.1.png` - Function implementation
-- `task2.2.png` - Assembly to C calling mechanism
-- `task2.3.png` - Compilation process
-- `task2.4.png` - Function testing output
-- `task2.5.png` - Memory verification
-- `task2.6.png` - Complete test suite
+![Task 2.1](task2.1.png) - Function implementation  
+![Task 2.2](task2.2.png) - Assembly to C calling mechanism  
+![Task 2.3](task2.3.png) - Compilation process  
+![Task 2.4](task2.4.png) - Function testing output  
+![Task 2.5](task2.5.png) - Memory verification  
+![Task 2.6](task2.6.png) - Complete test suite
 
 ### Task 3: Framebuffer Driver Development
 - **Status:** ✅ Completed
@@ -56,10 +56,8 @@ void fb_write(char* text);                   // Write string
 void fb_write_dec(int num);                  // Write decimal number
 void fb_write_hex(unsigned int num);         // Write hexadecimal number
 void fb_set_color(unsigned char fg, unsigned char bg); // Set text colors
-Screenshots:
 
-task3.1.png - Successful compilation with framebuffer support
-
-task3.2.png - File structure showing driver implementation
-
-task3.3.png - Complete test output showing all functionality working
+**Screenshots:**
+![Task 3.1](task3.1.png) - Successful compilation with framebuffer support
+![Task 3.2](task3.2.png) - File structure showing driver implementation
+![Task 3.3](task3.3.png) - Complete test output showing all functionality working
