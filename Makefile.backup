@@ -19,8 +19,8 @@ $(ISO): iso/boot/$(KERNEL)
 	-o $(ISO) \
 	iso
 
-iso/boot/$(KERNEL): source/loader.o source/kernel.o drivers/framebuffer.o drivers/io.o drivers/pic.o drivers/interrupt_handlers.o drivers/interrupt_asm.o drivers/interrupts.o drivers/keyboard.o drivers/hardware_interrupt_enabler.o drivers/string.o drivers/terminal.o
-	ld -T source/link.ld -melf_i386 source/loader.o source/kernel.o drivers/framebuffer.o drivers/io.o drivers/pic.o drivers/interrupt_handlers.o drivers/interrupt_asm.o drivers/interrupts.o drivers/keyboard.o drivers/hardware_interrupt_enabler.o drivers/string.o drivers/terminal.o -o iso/boot/$(KERNEL)
+iso/boot/$(KERNEL): source/loader.o source/kernel.o drivers/framebuffer.o drivers/io.o drivers/pic.o drivers/interrupt_handlers.o drivers/interrupt_asm.o drivers/interrupts.o drivers/keyboard.o drivers/hardware_interrupt_enabler.o
+	ld -T source/link.ld -melf_i386 source/loader.o source/kernel.o drivers/framebuffer.o drivers/io.o drivers/pic.o drivers/interrupt_handlers.o drivers/interrupt_asm.o drivers/interrupts.o drivers/keyboard.o drivers/hardware_interrupt_enabler.o -o iso/boot/$(KERNEL)
 
 source/loader.o: source/loader.asm
 	$(ASM) $(ASMFLAGS) source/loader.asm -o source/loader.o
@@ -51,12 +51,6 @@ drivers/keyboard.o: drivers/keyboard.c drivers/keyboard.h
 
 drivers/hardware_interrupt_enabler.o: drivers/hardware_interrupt_enabler.s
 	$(ASM) $(ASMFLAGS) drivers/hardware_interrupt_enabler.s -o drivers/hardware_interrupt_enabler.o
-
-drivers/string.o: drivers/string.c drivers/string.h
-	$(CC) $(CFLAGS) -c drivers/string.c -o drivers/string.o
-
-drivers/terminal.o: drivers/terminal.c drivers/terminal.h
-	$(CC) $(CFLAGS) -c drivers/terminal.c -o drivers/terminal.o
 
 run: $(ISO)
 	qemu-system-i386 -nographic -serial mon:stdio -boot d -cdrom $(ISO) -m 32

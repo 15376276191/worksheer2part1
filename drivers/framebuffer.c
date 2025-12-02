@@ -1,86 +1,105 @@
+#include "io.h"
 #include "framebuffer.h"
+#include "types.h"
 
-static unsigned short cursor_pos = 0;
-static unsigned char current_fg = FB_WHITE;
-static unsigned char current_bg = FB_BLACK;
+static u16int fb_calculate_position(u16int x, u16int y);
+static void fb_write_cell(u16int position, char c, u8int fg, u8int bg);
 
-static inline void outb(unsigned short port, unsigned char data) {
-    asm volatile ("outb %1, %0" : : "dN" (port), "a" (data));
+static u16int* fb = (u16int*) FB_MEMORY_ADDRESS;
+
+static u16int cursor_x = 0;
+static u16int cursor_y = 0;
+
+static u8int current_fg = FB_LIGHT_GREY;
+static u8int current_bg = FB_BLACK;
+
+static u16int fb_calculate_position(u16int x, u16int y) {
+    return y * 80 + x;
 }
 
-static inline unsigned char inb(unsigned short port) {
-    unsigned char data;
-    asm volatile ("inb %1, %0" : "=a" (data) : "dN" (port));
-    return data;
+static void fb_write_cell(u16int position, char c, u8int fg, u8int bg) {
+    fb[position] = (c & 0xFF) | ((fg & 0x0F) << 8) | ((bg & 0x0F) << 12);
+}
+
+void fb_clear(void) {
+    for (u16int i = 0; i < 80 * 25; i++) {
+        fb_write_cell(i, ' ', current_fg, current_bg);
+    }
+    cursor_x = 0;
+    cursor_y = 0;
+    fb_move_cursor(0);
 }
 
 void fb_move_cursor(unsigned short pos) {
     outb(FB_COMMAND_PORT, FB_HIGH_BYTE_COMMAND);
-    outb(FB_DATA_PORT, ((pos >> 8) & 0x00FF));
+    outb(FB_DATA_PORT, (pos >> 8) & 0xFF);
     outb(FB_COMMAND_PORT, FB_LOW_BYTE_COMMAND);
-    outb(FB_DATA_PORT, pos & 0x00FF);
-    cursor_pos = pos;
+    outb(FB_DATA_PORT, pos & 0xFF);
+    
+    cursor_x = pos % 80;
+    cursor_y = pos / 80;
 }
 
-void fb_clear(void) {
-    unsigned short* fb = (unsigned short*)FB_MEMORY_ADDRESS;
-    unsigned short blank = (current_bg << 12) | (current_fg << 8) | ' ';
+unsigned short fb_get_cursor_position(void) {
+    unsigned short pos = 0;
     
-    for (int i = 0; i < 80 * 25; i++) {
-        fb[i] = blank;
-    }
-    cursor_pos = 0;
-    fb_move_cursor(0);
-}
-
-void fb_write_char(char c, unsigned char fg, unsigned char bg) {
-    unsigned short* fb = (unsigned short*)FB_MEMORY_ADDRESS;
+    outb(FB_COMMAND_PORT, FB_HIGH_BYTE_COMMAND);
+    pos = inb(FB_DATA_PORT) << 8;
     
-    if (c == '\n') {
-        cursor_pos = (cursor_pos / 80 + 1) * 80;
-    } else if (c == '\t') {
-        for (int i = 0; i < 4; i++) {
-            fb_write_char(' ', fg, bg);
-        }
-        return;
-    } else {
-        fb[cursor_pos] = (bg << 12) | (fg << 8) | c;
-        cursor_pos++;
-    }
+    outb(FB_COMMAND_PORT, FB_LOW_BYTE_COMMAND);
+    pos |= inb(FB_DATA_PORT);
     
-    if (cursor_pos >= 80 * 25) {
-        for (int i = 0; i < 80 * 24; i++) {
-            fb[i] = fb[i + 80];
-        }
-        for (int i = 80 * 24; i < 80 * 25; i++) {
-            fb[i] = (bg << 12) | (fg << 8) | ' ';
-        }
-        cursor_pos = 80 * 24;
-    }
-    
-    fb_move_cursor(cursor_pos);
+    return pos;
 }
 
 void fb_move(unsigned short x, unsigned short y) {
-    if (x >= 80) x = 79;
-    if (y >= 25) y = 24;
-    cursor_pos = y * 80 + x;
-    fb_move_cursor(cursor_pos);
+    cursor_x = x;
+    cursor_y = y;
+    fb_move_cursor(fb_calculate_position(x, y));
+}
+
+void fb_write_char(char c, unsigned char fg, unsigned char bg) {
+    if (c == '\n') {
+        cursor_x = 0;
+        cursor_y++;
+    } else if (c == '\t') {
+        cursor_x = (cursor_x + 8) & ~(8 - 1);
+    } else if (c == '\b') {
+        if (cursor_x > 0) {
+            cursor_x--;
+        }
+    } else {
+        u16int position = fb_calculate_position(cursor_x, cursor_y);
+        fb_write_cell(position, c, fg, bg);
+        cursor_x++;
+    }
+    
+    if (cursor_x >= 80) {
+        cursor_x = 0;
+        cursor_y++;
+    }
+    
+    if (cursor_y >= 25) {
+        fb_clear();
+        cursor_x = 0;
+        cursor_y = 0;
+    }
+    
+    fb_move_cursor(fb_calculate_position(cursor_x, cursor_y));
 }
 
 void fb_write(char* text) {
-    while (*text) {
-        fb_write_char(*text, current_fg, current_bg);
-        text++;
+    for (u32int i = 0; text[i] != '\0'; i++) {
+        fb_write_char(text[i], current_fg, current_bg);
     }
 }
 
-void fb_set_color(unsigned char fg, unsigned char bg) {
-    current_fg = fg;
-    current_bg = bg;
-}
-
 void fb_write_dec(int num) {
+    if (num == 0) {
+        fb_write_char('0', current_fg, current_bg);
+        return;
+    }
+    
     if (num < 0) {
         fb_write_char('-', current_fg, current_bg);
         num = -num;
@@ -88,11 +107,6 @@ void fb_write_dec(int num) {
     
     char buffer[32];
     int i = 0;
-    
-    if (num == 0) {
-        fb_write_char('0', current_fg, current_bg);
-        return;
-    }
     
     while (num > 0) {
         buffer[i++] = '0' + (num % 10);
@@ -117,7 +131,11 @@ void fb_write_hex(unsigned int num) {
     
     while (num > 0) {
         int digit = num % 16;
-        buffer[i++] = (digit < 10) ? ('0' + digit) : ('A' + digit - 10);
+        if (digit < 10) {
+            buffer[i++] = '0' + digit;
+        } else {
+            buffer[i++] = 'A' + (digit - 10);
+        }
         num /= 16;
     }
     
@@ -125,3 +143,29 @@ void fb_write_hex(unsigned int num) {
         fb_write_char(buffer[j], current_fg, current_bg);
     }
 }
+
+void fb_set_color(unsigned char fg, unsigned char bg) {
+    current_fg = fg;
+    current_bg = bg;
+}
+
+void fb_backspace(void) {
+    unsigned short pos = fb_get_cursor_position();
+    
+    if (pos > 0) {
+        pos--;
+        fb_move_cursor(pos);
+        
+        fb_write_char(' ', current_fg, current_bg);
+        
+        fb_move_cursor(pos);
+        
+        cursor_x = pos % 80;
+        cursor_y = pos / 80;
+    }
+}
+
+void fb_newline(void) {
+    fb_write_char('\n', current_fg, current_bg);
+}
+

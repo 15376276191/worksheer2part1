@@ -30,11 +30,13 @@ typedef enum {
 
 void fb_clear(void);
 void fb_move_cursor(unsigned short pos);
+unsigned short fb_get_cursor_position(void);
 void fb_move(unsigned short x, unsigned short y);
 void fb_write_char(char c, unsigned char fg, unsigned char bg);
 void fb_write(char* text);
 void fb_write_dec(int num);
 void fb_write_hex(unsigned int num);
 void fb_set_color(unsigned char fg, unsigned char bg);
-
+void fb_backspace(void);
+void fb_newline(void);
 #endif
